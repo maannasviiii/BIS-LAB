@@ -1,0 +1,114 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMZ0WLg2ck2uACgq6F57hfF",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/maannasviiii/BIS-LAB/blob/main/week4_CSOipynb\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "eE6n801qZhRy",
+        "outputId": "fe83ec28-34e6-4e10-eb7f-401e47cdc2be"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Optimal Solar Panel Angle: 60.01298528549475\n",
+            "Maximum Solar Efficiency: 0.7499999486361306\n"
+          ]
+        }
+      ],
+      "source": [
+        "import numpy as np\n",
+        "import math\n",
+        "\n",
+        "# Objective function\n",
+        "def fitness(x):\n",
+        "    return np.sin(np.radians(x)) * np.cos(np.radians(x - 30))\n",
+        "\n",
+        "# Levy flight using Mantegna's method\n",
+        "def levy_flight(beta=1.5, size=1):\n",
+        "    sigma = (math.gamma(1 + beta) * np.sin(np.pi * beta / 2) / (math.gamma((1 + beta) / 2) * beta * 2 ** ((beta - 1) / 2))) ** (1 / beta)\n",
+        "\n",
+        "    u = np.random.normal(0, sigma, size)\n",
+        "    v = np.random.normal(0, 1, size)\n",
+        "    return u / np.abs(v) ** (1 / beta)\n",
+        "\n",
+        "# Parameters\n",
+        "n = 25\n",
+        "Pa = 0.25\n",
+        "iterations = 100\n",
+        "alpha = 0.01\n",
+        "lower = 0\n",
+        "upper = 90\n",
+        "\n",
+        "# Initialize nests\n",
+        "nests = np.random.uniform(lower, upper, n)\n",
+        "fitness_values = np.array([fitness(x) for x in nests])\n",
+        "\n",
+        "# Initial best solution\n",
+        "best_index = np.argmax(fitness_values)\n",
+        "best_nest = nests[best_index]\n",
+        "best_fitness = fitness_values[best_index]\n",
+        "\n",
+        "# Main Cuckoo Search\n",
+        "for iteration in range(iterations):\n",
+        "    # Generate new solutions using Levy flight\n",
+        "    steps = levy_flight(size=n)\n",
+        "    new_nests = nests + alpha * steps * (nests - best_nest)\n",
+        "    new_nests = np.clip(new_nests, lower, upper)\n",
+        "\n",
+        "    # Random host nest selection and greedy replacement\n",
+        "    for i in range(n):\n",
+        "        j = np.random.randint(0, n)\n",
+        "        if fitness(new_nests[i]) > fitness(nests[j]):\n",
+        "            nests[j] = new_nests[i]\n",
+        "\n",
+        "    # Abandon worst nests\n",
+        "    k = int(Pa * n)\n",
+        "    scores = np.array([fitness(x) for x in nests])\n",
+        "    worst_indices = np.argsort(scores)[:k]\n",
+        "    nests[worst_indices] = np.random.uniform(lower, upper, k)\n",
+        "\n",
+        "    # Update global best\n",
+        "    fitness_values = np.array([fitness(x) for x in nests])\n",
+        "    current_best = np.argmax(fitness_values)\n",
+        "    if fitness_values[current_best] > best_fitness:\n",
+        "        best_nest = nests[current_best]\n",
+        "        best_fitness = fitness_values[current_best]\n",
+        "\n",
+        "# Results\n",
+        "print(\"Optimal Solar Panel Angle:\", best_nest)\n",
+        "print(\"Maximum Solar Efficiency:\", best_fitness)"
+      ]
+    }
+  ]
+}
